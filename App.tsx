@@ -7,11 +7,37 @@ import { FilaDemandas } from './components/FilaDemandas';
 import { ResumosIA } from './components/ResumosIA';
 import { AgenteIA } from './components/AgenteIA';
 import { Menu, Sun, Moon } from 'lucide-react';
+import { Session } from '@supabase/supabase-js';
+import { supabase } from './supabaseClient';
+import { Login } from './components/auth/Login';
+import { Register } from './components/auth/Register';
 
 const App: React.FC = () => {
   const [activePage, setActivePage] = useState('visao-geral');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
+  const [session, setSession] = useState<Session | null>(null);
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  const [loading, setLoading] = useState(true);
+
+  React.useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setLoading(false);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+  };
 
   const toggleDarkMode = () => setDarkMode(!darkMode);
 
@@ -46,6 +72,20 @@ const App: React.FC = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-900">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (!session) {
+    return authMode === 'login'
+      ? <Login onRegisterClick={() => setAuthMode('register')} />
+      : <Register onLoginClick={() => setAuthMode('login')} />;
+  }
+
   return (
     <div className={`min-h-screen flex font-sans transition-colors duration-300 ${darkMode ? 'dark bg-slate-900' : 'bg-background'}`}>
 
@@ -55,6 +95,9 @@ const App: React.FC = () => {
         onNavigate={setActivePage}
         isOpen={sidebarOpen}
         onCloseMobile={() => setSidebarOpen(false)}
+        darkMode={darkMode}
+        toggleDarkMode={toggleDarkMode}
+        onLogout={handleLogout}
       />
 
       {/* Overlay for mobile sidebar */}

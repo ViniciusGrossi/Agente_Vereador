@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo } from 'react';
-import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, CircleMarker, Popup, useMap, Marker } from 'react-leaflet';
+import MarkerClusterGroup from 'react-leaflet-cluster';
 import 'leaflet/dist/leaflet.css';
 import { Atendimento } from '../types';
 import { MapPin, Flame, Loader2 } from 'lucide-react';
@@ -76,7 +77,10 @@ export const MapInteractive: React.FC<MapInteractiveProps> = ({ data, selectedBa
   // Memoize processed data to avoid recalculation on every render
   const processedPoints = useMemo(() => {
     return data.map(d => {
-      const baseCoords = REAL_COORDS[d.bairro] || DEFAULT_CENTER;
+      const bairroNome = typeof d.bairro === 'object' && d.bairro ? d.bairro.nome : String(d.bairro || '');
+      const temaNome = typeof d.tema === 'object' && d.tema ? d.tema.nome : String(d.tema || '');
+
+      const baseCoords = REAL_COORDS[bairroNome] || DEFAULT_CENTER;
       // Stable jitter based on ID hash or similar would be better, but random is fine for now if memoized
       // We use a simple pseudo-random based on string length to keep it somewhat stable during this session if data doesn't change
       const pseudoRandom = (str: string) => {
@@ -91,12 +95,12 @@ export const MapInteractive: React.FC<MapInteractiveProps> = ({ data, selectedBa
       const lng = baseCoords[1] + (pseudoRandom(d.id + 'lng') - 0.5) * 0.008;
 
       let color = '#1A73E8';
-      if (d.tema === 'Saúde') color = '#D93025';
-      if (d.tema === 'Segurança') color = '#F9AB00';
-      if (d.tema === 'Iluminação') color = '#A142F4';
-      if (d.tema === 'Transporte') color = '#00ACC1';
+      if (temaNome === 'Saúde') color = '#D93025';
+      if (temaNome === 'Segurança') color = '#F9AB00';
+      if (temaNome === 'Iluminação') color = '#A142F4';
+      if (temaNome === 'Transporte') color = '#00ACC1';
 
-      return { ...d, lat, lng, color };
+      return { ...d, lat, lng, color, bairroNome, temaNome };
     });
   }, [data]);
 
@@ -122,8 +126,8 @@ export const MapInteractive: React.FC<MapInteractiveProps> = ({ data, selectedBa
           <button
             onClick={() => setViewMode('points')}
             className={`p-2 rounded-md transition-all flex items-center justify-center gap-2 text-xs font-medium ${viewMode === 'points'
-                ? 'bg-blue-50 dark:bg-blue-900/30 text-primary'
-                : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700'
+              ? 'bg-blue-50 dark:bg-blue-900/30 text-primary'
+              : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700'
               }`}
             title="Visualização de Pontos"
           >
@@ -133,8 +137,8 @@ export const MapInteractive: React.FC<MapInteractiveProps> = ({ data, selectedBa
           <button
             onClick={() => setViewMode('heatmap')}
             className={`p-2 rounded-md transition-all flex items-center justify-center gap-2 text-xs font-medium ${viewMode === 'heatmap'
-                ? 'bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
-                : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700'
+              ? 'bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
+              : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700'
               }`}
             title="Mapa de Calor"
           >
@@ -181,31 +185,48 @@ export const MapInteractive: React.FC<MapInteractiveProps> = ({ data, selectedBa
 
         <MapUpdater center={mapCenter} zoom={mapZoom} />
 
-        {viewMode === 'points' && processedPoints.map((point) => (
-          <CircleMarker
-            key={point.id}
-            center={[point.lat, point.lng]}
-            radius={6}
-            pathOptions={{
-              fillColor: point.color,
-              color: '#fff',
-              weight: 1,
-              opacity: 1,
-              fillOpacity: 0.8
+        <MapUpdater center={mapCenter} zoom={mapZoom} />
+
+        {viewMode === 'points' && (
+          <MarkerClusterGroup
+            chunkedLoading
+            iconCreateFunction={(cluster) => {
+              return L.divIcon({
+                html: `<div class="flex items-center justify-center w-8 h-8 bg-primary text-white rounded-full font-bold text-xs border-2 border-white shadow-md">${cluster.getChildCount()}</div>`,
+                className: 'custom-marker-cluster',
+                iconSize: L.point(32, 32)
+              });
             }}
           >
-            <Popup>
-              <div className="p-1 min-w-[200px]">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-bold uppercase text-gray-500">{point.bairro}</span>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 border border-gray-200">{point.status_demanda}</span>
-                </div>
-                <h4 className="font-bold text-gray-800 text-sm mb-1">{point.tema}</h4>
-                <p className="text-xs text-gray-600 leading-snug">{point.resumo_demanda}</p>
-              </div>
-            </Popup>
-          </CircleMarker>
-        ))}
+            {processedPoints.map((point) => (
+              <CircleMarker
+                key={point.id}
+                center={[point.lat, point.lng]}
+                radius={8}
+                pathOptions={{
+                  fillColor: point.color,
+                  color: '#fff',
+                  weight: 2,
+                  opacity: 1,
+                  fillOpacity: 0.9
+                }}
+              >
+                <Popup>
+                  <div className="p-1 min-w-[200px]">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-bold uppercase text-gray-500">{point.bairroNome}</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 border border-gray-200">
+                        {point.status_demanda || 'Nova'}
+                      </span>
+                    </div>
+                    <h4 className="font-bold text-gray-800 text-sm mb-1">{point.temaNome}</h4>
+                    <p className="text-xs text-gray-600 leading-snug">{point.resumo_demanda}</p>
+                  </div>
+                </Popup>
+              </CircleMarker>
+            ))}
+          </MarkerClusterGroup>
+        )}
 
         {viewMode === 'heatmap' && <HeatmapLayer points={heatPoints} />}
       </MapContainer>

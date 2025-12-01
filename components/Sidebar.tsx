@@ -8,9 +8,10 @@ interface SidebarProps {
   onCloseMobile: () => void;
   darkMode: boolean;
   toggleDarkMode: () => void;
+  onLogout: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate, isOpen, onCloseMobile, darkMode, toggleDarkMode }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate, isOpen, onCloseMobile, darkMode, toggleDarkMode, onLogout }) => {
   const menuItems = [
     { id: 'visao-geral', label: 'Visão Geral', icon: <LayoutDashboard size={24} /> },
     { id: 'temas-bairros', label: 'Temas e Bairros', icon: <Map size={24} /> },
@@ -69,7 +70,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ activePage, onNavigate, isOpen
 
         {/* Footer */}
         <div className="p-4 border-t border-border">
-          <button className="flex items-center gap-3 px-4 py-3 w-full text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg transition-colors text-sm font-medium">
+          <button
+            onClick={onLogout}
+            className="flex items-center gap-3 px-4 py-3 w-full text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg transition-colors text-sm font-medium"
+          >
             <LogOut size={20} />
             Sair do Sistema
           </button>

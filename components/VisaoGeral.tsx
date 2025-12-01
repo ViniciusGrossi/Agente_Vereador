@@ -26,9 +26,10 @@ export const VisaoGeral: React.FC = () => {
         row.data,
         row.canal,
         row.tipo_interacao,
-        row.tema,
-        row.subtema,
-        row.bairro,
+        // Helper to safely get name
+        (typeof row.tema === 'object' && row.tema ? row.tema.nome : String(row.tema || '')),
+        (typeof row.subtema === 'object' && row.subtema ? row.subtema.nome : String(row.subtema || '')),
+        (typeof row.bairro === 'object' && row.bairro ? row.bairro.nome : String(row.bairro || '')),
         row.sentimento,
         row.nota_satisfacao
       ].join(','))

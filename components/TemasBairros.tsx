@@ -14,14 +14,18 @@ export const TemasBairros: React.FC = () => {
     filteredData
   } = useDashboardData();
 
+  // Helper to safely get name
+  const getName = (item: any) => (typeof item === 'object' && item ? item.nome : String(item || ''));
+
   // Unique lists for filters
-  const allTemas = Array.from(new Set(MOCK_DATA.map(d => d.tema))).sort();
-  const allBairros = Array.from(new Set(MOCK_DATA.map(d => d.bairro))).sort();
+  const allTemas = Array.from(new Set(MOCK_DATA.map(d => getName(d.tema)))).sort();
+  const allBairros = Array.from(new Set(MOCK_DATA.map(d => getName(d.bairro)))).sort();
 
   // Chart Data: Themes
   const temaChartData = useMemo(() => {
     const counts = filteredData.reduce((acc, curr) => {
-      acc[curr.tema] = (acc[curr.tema] || 0) + 1;
+      const name = getName(curr.tema);
+      acc[name] = (acc[name] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
 
@@ -129,7 +133,9 @@ export const TemasBairros: React.FC = () => {
             <tbody className="divide-y divide-border dark:divide-slate-700">
               {/* Aggregate for table */}
               {Object.entries(filteredData.reduce((acc, curr) => {
-                const key = `${curr.bairro}|${curr.tema}`;
+                const bairroNome = getName(curr.bairro);
+                const temaNome = getName(curr.tema);
+                const key = `${bairroNome}|${temaNome}`;
                 acc[key] = (acc[key] || 0) + 1;
                 return acc;
               }, {} as Record<string, number>))
